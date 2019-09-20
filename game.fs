@@ -1,33 +1,52 @@
 \ Primal Rites
 \ GameBoy game by euhmeuh
-\ Copyright (C) 2019 Jerome Martin
+\ Copyright (C) 2019 Jérôme Martin
 
 require tileset.fs
-require gbforth/lib/ibm-font.fs
+require gbforth/lib/gbhw.fs
+require gbforth/lib/input.fs
 require gbforth/lib/term.fs
 
-20 constant /width
-16 constant /height
+20 constant VIEW-W
+16 constant VIEW-H
+32 constant MAP-W
+32 constant MAP-H
 
 ROM
 
 create PATTERNS
-%11111000 c, %00000000 c, %11110000 c,
-%11111111 c, %11100000 c, %00110000 c,
-%01111111 c, %11000000 c, %00110000 c,
-%00111110 c, %00000000 c, %00010000 c,
-%00111100 c, %00000000 c, %00000000 c,
-%00111000 c, %00000000 c, %00000000 c,
-%00000000 c, %00000000 c, %00010000 c,
-%00000000 c, %00000000 c, %00010000 c,
-%00000000 c, %00000000 c, %00010000 c,
-%00000000 c, %01100000 c, %00110000 c,
-%00010000 c, %01100000 c, %00110000 c,
-%00011000 c, %00000000 c, %00110000 c,
-%00011000 c, %00000000 c, %00110000 c,
-%00010000 c, %00000000 c, %01110000 c,
-%00010000 c, %00000000 c, %01110000 c,
-%00000000 c, %00001111 c, %11110000 c,
+%11111000 c, %00000000 c, %10000111 c, %10000100 c,
+%11111111 c, %11100000 c, %00000011 c, %11001110 c,
+%01111111 c, %11000000 c, %00000011 c, %11001111 c,
+%00111110 c, %00000000 c, %00000001 c, %01001111 c,
+%00111100 c, %00000000 c, %00000000 c, %01001100 c,
+%00111000 c, %00000000 c, %00000000 c, %00000100 c,
+%00000000 c, %00000000 c, %00000001 c, %00001100 c,
+%00000000 c, %00000000 c, %00000001 c, %10001110 c,
+%00000000 c, %00000000 c, %00000001 c, %10001110 c,
+%00000000 c, %01100000 c, %00000011 c, %11001110 c,
+%00010000 c, %01100000 c, %00000011 c, %11111100 c,
+%00011000 c, %00000000 c, %00000011 c, %11111000 c,
+%00011000 c, %00000000 c, %00000011 c, %00111100 c,
+%00010000 c, %00000000 c, %00000111 c, %00001110 c,
+%00010000 c, %00000000 c, %00000111 c, %00001111 c,
+%00000000 c, %00000011 c, %00000000 c, %00001111 c,
+%00000000 c, %00000111 c, %00000000 c, %00000111 c,
+%00000000 c, %00000111 c, %00110000 c, %00000000 c,
+%00000000 c, %00001110 c, %00000000 c, %00001100 c,
+%00000000 c, %00001110 c, %00000000 c, %00001100 c,
+%00000000 c, %00000110 c, %00000000 c, %00000000 c,
+%00000000 c, %00000110 c, %00001100 c, %00000110 c,
+%00000000 c, %00001110 c, %00001100 c, %00000000 c,
+%00000000 c, %00001111 c, %00000000 c, %00000000 c,
+%00000000 c, %00001111 c, %00000000 c, %01100000 c,
+%00000000 c, %00001111 c, %00000000 c, %11000000 c,
+%01100000 c, %00111111 c, %00000000 c, %00001100 c,
+%00110000 c, %11111111 c, %11000000 c, %00001100 c,
+%00011000 c, %01111111 c, %11100000 c, %00000000 c,
+%00111000 c, %00011111 c, %01111100 c, %00000000 c,
+%00011000 c, %00011111 c, %00111000 c, %00000110 c,
+%00001000 c, %00001111 c, %00000000 c, %00000110 c,
 
 create SCREENS
 ( 4pattern 2res 2rotation )
@@ -36,58 +55,59 @@ create SCREENS
 %00000000 c,
 %00000000 c,
 
-create MENU
-B-FULL B-FULL
-2dup 2dup 2dup 2dup 2dup 2dup 2dup 2dup 2dup
-c, c, c, c, c, c, c, c, c, c,
-c, c, c, c, c, c, c, c, c, c,
-
 RAM
 
-create MAP-LINE
+create MAP-LINE 8 allot
 
-: map-line! ( tile idx -- )
-  MAP-LINE + c!
-;
+: !map-line ( tile idx -- )  MAP-LINE + c! ;
+: .map-line ( -- )  MAP-LINE 8 type ;
 
-: show-map-line ( -- )
-  MAP-LINE 8 type
-;
-
-: check-tile ( line -- )  128 and if 1 else 0 then ;
+: check-tile ( line -- )  128 and ;
 : next-tile  ( line -- )  1 lshift ;
 : show-tiles ( line -- )
   8 0 do
     dup check-tile
     if B-GRASS else B-EMPTY then
-    i map-line! next-tile
+    i !map-line next-tile
   loop
-  drop show-map-line
+  drop .map-line
 ;
 
 : show-level ( -- )
-  /height 0 do
-    PATTERNS i 3 * +
+  MAP-H 0 do
+    PATTERNS i 4 * +
     dup c@ show-tiles
     dup 1 + c@ show-tiles
     dup 2 + c@ show-tiles
+    dup 3 + c@ show-tiles
     cr
   loop 
-;
-
-: show-menu ( -- )
-  MENU 20 type cr
-  MENU 20 type cr
 ;
 
 : show-human ( x y -- )
   at-xy B-HUMAN-0 emit
 ;
 
-: main
-  install-game-tileset
-  show-menu
+: .ui
   show-level
   10 10 show-human
+;
+
+: handle-input
+  begin
+    key-state
+    dup k-up   and if rSCY @ 1 - rSCY c! then
+    dup k-down and if rSCY @ 1 + rSCY c! then
+    dup k-left and if rSCX @ 1 - rSCX c! then
+    k-right    and if rSCX @ 1 + rSCX c! then
+    16 0 do wait loop
+  again
+;
+
+: main
+  install-game-tileset
+  init-input
+  .ui
+  handle-input
 ;
 
