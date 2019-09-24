@@ -49,8 +49,9 @@ create PATTERNS
 %00001000 c, %00001111 c, %00000000 c, %00000110 c,
 
 create SCREENS
-( 4pattern 2res 2rotation )
-\ ," Forest" 1 c,
+( size layer1 layer2 layer3 )
+1 c,
+( 4pattern 4resource )
 %00000000 c,
 %00000000 c,
 %00000000 c,
@@ -93,14 +94,19 @@ create MAP-LINE 8 allot
   10 10 show-human
 ;
 
+: sleep ( n -- )  0 do wait loop ;
+
+: scrollx ( n -- )  rSCX @ + rSCX c! ;
+: scrolly ( n -- )  rSCY @ + rSCY c! ;
+
 : handle-input
   begin
     key-state
-    dup k-up   and if rSCY @ 1 - rSCY c! then
-    dup k-down and if rSCY @ 1 + rSCY c! then
-    dup k-left and if rSCX @ 1 - rSCX c! then
-    k-right    and if rSCX @ 1 + rSCX c! then
-    16 0 do wait loop
+    dup k-up   and if -1 scrolly then
+    dup k-down and if  1 scrolly then
+    dup k-left and if -1 scrollx then
+    k-right    and if  1 scrollx then
+    16 sleep
   again
 ;
 
